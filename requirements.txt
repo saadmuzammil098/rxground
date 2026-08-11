@@ -1,0 +1,7 @@
+requests>=2.32
+pydantic>=2.13
+sentence-transformers>=5.7
+chromadb>=0.5
+pytest>=9.1
+dvc>=3.67
+dvc-s3>=3.0

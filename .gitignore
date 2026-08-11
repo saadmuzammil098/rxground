@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.dvc/cache
+.dvc/tmp
+task-1/chroma_db/

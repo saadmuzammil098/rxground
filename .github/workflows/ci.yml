@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test-task-1:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: task-1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install -r ../requirements.txt
+      - name: Schema and chunking tests
+        # Fast, offline: only exercises schema validation and the two
+        # chunking strategies against data/raw fixtures, no live openFDA
+        # call, no embedding model download needed.
+        run: python -m pytest tests -v
+
+  readme-diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/validate_mermaid.py
