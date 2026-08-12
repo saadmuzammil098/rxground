@@ -27,6 +27,15 @@ flowchart LR
         chromaB --> eval
         eval --> results[("top1: 0.667 vs 0.250\ntop3: 0.833 vs 0.500")]
     end
+
+    subgraph Day15["Day 15, task-2: baseline RAG"]
+        question[("pharmacist question")] --> gate{"similarity gate\n>= 0.75?"}
+        gate -- "no" --> refuse[("not covered,\nno LLM call")]
+        gate -- "yes" --> llm["generate()\nOllama / Gemini / Groq"]
+        llm --> cited[("cited answer,\n(Brand, section)")]
+    end
+
+    chromaA -. "reused unchanged" .-> gate
 ```
 
 ## Tasks
@@ -34,6 +43,7 @@ flowchart LR
 | Day | Folder | What it is |
 |---|---|---|
 | 14 | [`task-1/`](./task-1) | Indexes 15 real FDA drug labels (pulled live from the openFDA API) two ways, section-aware chunking versus naive fixed-size chunking, embeds both with BAAI/bge-base-en-v1.5 into separate Chroma collections, and measures the real retrieval accuracy gap on 12 pharmacist-style questions. Section-aware wins 0.667 versus 0.250 top-1 accuracy on the same questions |
+| 15 | [`task-2/`](./task-2) | Baseline RAG on top of task-1's index: retrieve, augment, generate with a citation-enforcing prompt and a measured 0.75 similarity gate that refuses questions not covered by the indexed labels before any LLM call. 10/10 real questions were gated correctly, 6/8 in-index answers carried a traceable citation (4/8 in the exact requested format, 2 more in the label's own cross-reference style), and 2/2 out-of-index questions were correctly refused, run live against Ollama and confirmed provider-agnostic against Gemini |
 
 ## Tech stack
 
@@ -96,6 +106,31 @@ labels, on purpose, so they stay fast and work in CI without needing
 Renders each README's mermaid block through the real parser on every push,
 so a diagram that looks fine as plain text but breaks GitHub's renderer
 fails the build instead of only showing up broken after merging.
+</details>
+
+<details>
+<summary><strong>Ollama, qwen2.5:7b</strong>, task-2, the default local generation provider for baseline RAG</summary>
+
+Free, local, no rate limit, which is why every real eval run in task-2's
+README uses it. Also the provider on which the citation-format finding
+(the model echoes the label's own cross-reference style about as often as
+it follows the prompt's requested format) was actually observed.
+</details>
+
+<details>
+<summary><strong>Gemini, gemini-flash-latest</strong>, task-2, confirmed live as the alternate generation provider</summary>
+
+Run against the same real questions as Ollama specifically to prove the
+retrieve-augment-generate pipeline is genuinely provider-agnostic, not
+just structured to look that way.
+</details>
+
+<details>
+<summary><strong>Groq, llama-3.3-70b-versatile</strong>, task-2, one leg of the provider-agnostic generation step</summary>
+
+Wired identically to the other two providers, but not exercised live, no
+<code>GROQ_API_KEY</code> is set in this environment, the same documented gap as
+GridScribe.
 </details>
 
 ## Setup

@@ -1,0 +1,175 @@
+[
+  {
+    "question": "What is the maximum dose of the metformin combination ZITUVIMET for a patient with renal impairment",
+    "expect_covered": true,
+    "actual_passed_similarity_gate": true,
+    "actual_stated_not_covered": true,
+    "best_similarity": 0.8289,
+    "answer": "The maximum recommended daily dose of ZITUVIMET, which contains sitagliptin and metformin hydrochloride, is 100 mg of sitagliptin and 2,000 mg of metformin HCl. However, the specific maximum dose for a patient with renal impairment is not directly stated in the provided excerpts. Therefore, this information is not covered by the indexed labels.",
+    "citations": [],
+    "has_citation": false,
+    "citation_matches_expected_drug": false,
+    "source_style_citations": []
+  },
+  {
+    "question": "What are the contraindications for Lipitor, atorvastatin",
+    "expect_covered": true,
+    "actual_passed_similarity_gate": true,
+    "actual_stated_not_covered": false,
+    "best_similarity": 0.7952,
+    "answer": "Contraindications for Lipitor include:\n- Acute liver failure or decompensated cirrhosis [see Contraindications (4)].\n- Hypersensitivity to atorvastatin or any excipients in LIPITOR [see Contraindications (4)].",
+    "citations": [],
+    "has_citation": false,
+    "citation_matches_expected_drug": false,
+    "source_style_citations": [
+      "[see Contraindications (4)]",
+      "[see Contraindications (4)]"
+    ]
+  },
+  {
+    "question": "What drug interactions does warfarin sodium have",
+    "expect_covered": true,
+    "actual_passed_similarity_gate": true,
+    "actual_stated_not_covered": false,
+    "best_similarity": 0.8467,
+    "answer": "Warfarin sodium can interact with drugs that increase bleeding risk, antibiotics, antifungals, botanical products, and inhibitors or inducers of CYP2C9, 1A2, or 3A4 mechanisms. (Warfarin Sodium, drug_interactions)\n\nAntibiotics or antifungals may require closely monitored INR when starting or stopping them in patients taking warfarin. (Warfarin Sodium, drug_interactions)\n\nBotanical products and foods can interact with warfarin sodium through CYP450 interactions. (Warfarin Sodium, drug_interactions)",
+    "citations": [
+      [
+        "Warfarin Sodium",
+        "drug_interactions"
+      ],
+      [
+        "Warfarin Sodium",
+        "drug_interactions"
+      ],
+      [
+        "Warfarin Sodium",
+        "drug_interactions"
+      ]
+    ],
+    "has_citation": true,
+    "citation_matches_expected_drug": true,
+    "source_style_citations": []
+  },
+  {
+    "question": "Is lisinopril, Zestril, safe to take during pregnancy",
+    "expect_covered": true,
+    "actual_passed_similarity_gate": true,
+    "actual_stated_not_covered": false,
+    "best_similarity": 0.809,
+    "answer": "No, lisinopril, Zestril, is not safe to take during pregnancy. Use of drugs that act on the renin-angiotensin system during the second and third trimesters of pregnancy reduces fetal renal function and increases fetal and neonatal morbidity and death. (Zestril, 8.1 Pregnancy Risk Summary)",
+    "citations": [],
+    "has_citation": false,
+    "citation_matches_expected_drug": false,
+    "source_style_citations": []
+  },
+  {
+    "question": "What happens in an overdose of amoxicillin, Amoxil",
+    "expect_covered": true,
+    "actual_passed_similarity_gate": true,
+    "actual_stated_not_covered": false,
+    "best_similarity": 0.7664,
+    "answer": "In case of overdosage, discontinue medication, treat symptomatically, and institute supportive measures as required. Interstitial nephritis resulting in oliguric renal failure has been reported in a small number of patients after Amoxicillin overdosage (Amoxil, overdosage). Crystalluria, in some cases leading to renal failure, has also been reported (Amoxil, overdosage). Adequate fluid intake and diuresis should be maintained to reduce the risk of Amoxicillin crystalluria. High blood levels may occur more readily in patients with impaired renal function because of decreased renal clearance of Amoxicillin (Amoxil, overdosage). Renal impairment appears to be reversible with cessation of drug administration. Amoxicillin may be removed from circulation by hemodialysis (Amoxil, overdosage).",
+    "citations": [
+      [
+        "Amoxil",
+        "overdosage"
+      ],
+      [
+        "Amoxil",
+        "overdosage"
+      ],
+      [
+        "Amoxil",
+        "overdosage"
+      ],
+      [
+        "Amoxil",
+        "overdosage"
+      ]
+    ],
+    "has_citation": true,
+    "citation_matches_expected_drug": true,
+    "source_style_citations": []
+  },
+  {
+    "question": "What is the boxed warning for the metformin combination ZITUVIMET",
+    "expect_covered": true,
+    "actual_passed_similarity_gate": true,
+    "actual_stated_not_covered": false,
+    "best_similarity": 0.7815,
+    "answer": "The boxed warning for ZITUVIMET emphasizes that if lactic acidosis is suspected, immediately discontinue ZITUVIMET and institute general supportive measures in a hospital setting. Prompt hemodialysis is recommended. (ZITUVIMET, boxed_warning)",
+    "citations": [
+      [
+        "ZITUVIMET",
+        "boxed_warning"
+      ]
+    ],
+    "has_citation": true,
+    "citation_matches_expected_drug": true,
+    "source_style_citations": []
+  },
+  {
+    "question": "What warnings and precautions exist for simvastatin, ZOCOR",
+    "expect_covered": true,
+    "actual_passed_similarity_gate": true,
+    "actual_stated_not_covered": false,
+    "best_similarity": 0.7748,
+    "answer": "Risk factors for myopathy include age 65 years or greater, uncontrolled hypothyroidism, renal impairment, concomitant use with certain other drugs (including other lipid-lowering therapies), and higher ZOCOR dosage; Chinese patients on ZOCOR may be at higher risk for myopathy [see Warnings and Precautions (5.1) ].\n\nSteps to prevent or reduce the risk of myopathy and rhabdomyolysis include avoiding concomitant use with strong CYP3A4 inhibitors, temporarily suspending ZOCOR during such treatments if short-term treatment is necessary [see Warnings and Precautions (5.1) ].\n\nRenal impairment is a risk factor for myopathy and rhabdomyolysis; monitor all patients with renal impairment for development of myopathy [see Warnings and Precautions (5.1) ].\n\nZOCOR is contraindicated in patients with acute liver failure or decompensated cirrhosis due to the risk of exacerbating liver injury [see Contraindications (4), Warnings and Precautions (5.3)].\n\nThe 80 mg strength of ZOCOR is no longer marketed, so alternative dosing strategies may be necessary for patients requiring higher doses [see Use in Specific Populations (8.8)].",
+    "citations": [],
+    "has_citation": false,
+    "citation_matches_expected_drug": false,
+    "source_style_citations": [
+      "[see Warnings and Precautions (5.1) ]",
+      "[see Warnings and Precautions (5.1) ]",
+      "[see Warnings and Precautions (5.1) ]",
+      "[see Contraindications (4), Warnings and Precautions (5.3)]",
+      "[see Use in Specific Populations (8.8)]"
+    ]
+  },
+  {
+    "question": "What is albuterol, VENTOLIN HFA, indicated to treat",
+    "expect_covered": true,
+    "actual_passed_similarity_gate": true,
+    "actual_stated_not_covered": false,
+    "best_similarity": 0.7947,
+    "answer": "VENTOLIN HFA is indicated for the treatment or prevention of bronchospasm in adult and pediatric patients aged 4 years and older with reversible obstructive airway disease. (VENTOLIN HFA, indications_and_usage), as well as for the prevention of exercise-induced bronchospasm in the same age group. (VENTOLIN HFA, indications_and_usage)",
+    "citations": [
+      [
+        "VENTOLIN HFA",
+        "indications_and_usage"
+      ],
+      [
+        "VENTOLIN HFA",
+        "indications_and_usage"
+      ]
+    ],
+    "has_citation": true,
+    "citation_matches_expected_drug": true,
+    "source_style_citations": []
+  },
+  {
+    "question": "What is the recommended dose of aspirin for a heart attack",
+    "expect_covered": false,
+    "actual_passed_similarity_gate": false,
+    "actual_stated_not_covered": true,
+    "best_similarity": 0.7156,
+    "answer": "This question is not covered by the indexed labels. The closest indexed label section scored 0.716 cosine similarity, below the 0.75 confidence threshold, so no answer is generated rather than risking one built on an unrelated label.",
+    "citations": [],
+    "has_citation": false,
+    "citation_matches_expected_drug": null,
+    "source_style_citations": []
+  },
+  {
+    "question": "Is prednisone safe for a diabetic patient",
+    "expect_covered": false,
+    "actual_passed_similarity_gate": false,
+    "actual_stated_not_covered": true,
+    "best_similarity": 0.6414,
+    "answer": "This question is not covered by the indexed labels. The closest indexed label section scored 0.641 cosine similarity, below the 0.75 confidence threshold, so no answer is generated rather than risking one built on an unrelated label.",
+    "citations": [],
+    "has_citation": false,
+    "citation_matches_expected_drug": null,
+    "source_style_citations": []
+  }
+]

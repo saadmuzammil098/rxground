@@ -24,6 +24,25 @@ jobs:
         # call, no embedding model download needed.
         run: python -m pytest tests -v
 
+  test-task-2:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: task-2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install -r ../requirements.txt
+      - name: Retrieval math and RAG orchestration tests
+        # Fast, offline: retrieve() and generate() are monkeypatched, no
+        # live Chroma index, embedding model, Ollama server, or API keys
+        # needed. Only the L2-to-cosine conversion and the citation/gate
+        # logic are under test here.
+        run: python -m pytest tests -v
+
   readme-diagrams:
     runs-on: ubuntu-latest
     steps:
