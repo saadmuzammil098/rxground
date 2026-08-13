@@ -35,7 +35,19 @@ flowchart LR
         llm --> cited[("cited answer,\n(Brand, section)")]
     end
 
+    subgraph Day16["Day 16, task-3: citation-enforced generation"]
+        q3[("pharmacist question")] --> gate2{"similarity gate\n>= 0.75?"}
+        gate2 -- "no" --> refuse2[("refused,\nno LLM call")]
+        gate2 -- "yes" --> llm2["generate()\nstructured JSON prompt"]
+        llm2 --> parse{"valid JSON +\nPydantic schema?"}
+        parse -- "no" --> refuse3[("fail closed,\nrefused")]
+        parse -- "yes" --> xcheck{"chunk_id in\nretrieved set?"}
+        xcheck -- "no" --> invalid[("claim rejected,\ncitation invalid")]
+        xcheck -- "yes" --> ground["groundedness.py\nlexical overlap score"]
+    end
+
     chromaA -. "reused unchanged" .-> gate
+    chromaA -. "reused unchanged" .-> gate2
 ```
 
 ## Tasks
@@ -44,6 +56,7 @@ flowchart LR
 |---|---|---|
 | 14 | [`task-1/`](./task-1) | Indexes 15 real FDA drug labels (pulled live from the openFDA API) two ways, section-aware chunking versus naive fixed-size chunking, embeds both with BAAI/bge-base-en-v1.5 into separate Chroma collections, and measures the real retrieval accuracy gap on 12 pharmacist-style questions. Section-aware wins 0.667 versus 0.250 top-1 accuracy on the same questions |
 | 15 | [`task-2/`](./task-2) | Baseline RAG on top of task-1's index: retrieve, augment, generate with a citation-enforcing prompt and a measured 0.75 similarity gate that refuses questions not covered by the indexed labels before any LLM call. 10/10 real questions were gated correctly, 6/8 in-index answers carried a traceable citation (4/8 in the exact requested format, 2 more in the label's own cross-reference style), and 2/2 out-of-index questions were correctly refused, run live against Ollama and confirmed provider-agnostic against Gemini |
+| 16 | [`task-3/`](./task-3) | Citation-enforced generation: structured JSON output, one claim per statement, each claim's `(set_id, section, chunk_id)` citation validated first by Pydantic then cross-checked against the chunk_ids actually retrieved for that question, a claim whose citation does not survive both checks is rejected rather than trusted. A lexical-overlap groundedness score is logged per claim. Run live against Ollama on 18 questions across 3 categories: 10/10 refusal correctness, 0.556 mean citation validity on answered questions, 0.749 mean groundedness, 0/18 parse failures. The real citation-invalid cases were content-correct answers with a fabricated chunk_id (see task-3's README), which is exactly the failure mode the chunk_id cross-check exists to catch. The deliberate failure exercise shows the citation-enforced pipeline correctly refusing an aspirin dosing question (aspirin is not indexed) while the same retrieved context, unenforced, produces a confident-sounding answer built from an unrelated drug's label |
 
 ## Tech stack
 
@@ -131,6 +144,36 @@ just structured to look that way.
 Wired identically to the other two providers, but not exercised live, no
 <code>GROQ_API_KEY</code> is set in this environment, the same documented gap as
 GridScribe.
+</details>
+
+<details>
+<summary><strong>Pydantic</strong>, task-3, <code>Citation</code>/<code>Claim</code>/<code>GroundedResponse</code> structural validation of the LLM's JSON output</summary>
+
+Same library used for task-1's <code>LabelChunk</code> schema, reused here
+for a different job, rejecting a claim with no citation or a response
+shape that does not match what was asked for, before any citation is
+trusted. Necessary but not sufficient on its own, see the chunk_id
+cross-check below.
+</details>
+
+<details>
+<summary><strong>A repo-level chunk_id cross-check</strong>, task-3, catches what Pydantic alone cannot</summary>
+
+Pydantic can confirm a citation has the right shape, it cannot confirm the
+cited chunk_id was one that was actually retrieved for the question. This
+check does, and it is what caught the real observed failure mode, qwen2.5:
+7b giving a factually correct answer while citing a plausible-looking but
+fabricated chunk_id, see task-3's README for the exact case.
+</details>
+
+<details>
+<summary><strong>A lexical-overlap heuristic</strong>, task-3, the groundedness check, deliberately not a second LLM call</summary>
+
+Chosen over LLM-as-judge because the failure being checked for, a claim's
+text saying something its cited chunk does not contain, is a fact a
+second LLM call could just as easily rubber-stamp as the first one
+hallucinated. A deterministic word-overlap score cannot be talked into
+agreeing with a fabricated claim.
 </details>
 
 ## Setup

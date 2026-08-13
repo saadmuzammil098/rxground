@@ -43,6 +43,25 @@ jobs:
         # logic are under test here.
         run: python -m pytest tests -v
 
+  test-task-3:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: task-3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install -r ../requirements.txt
+      - name: Citation schema, groundedness, and citation cross-check tests
+        # Fast, offline: no live Chroma index, embedding model, Ollama
+        # server, or API keys needed. Only the Pydantic schema, the
+        # lexical-overlap groundedness heuristic, JSON extraction, and the
+        # chunk_id cross-check logic are under test here.
+        run: python -m pytest tests -v
+
   readme-diagrams:
     runs-on: ubuntu-latest
     steps:
