@@ -5,3 +5,6 @@ __pycache__/
 .dvc/cache
 .dvc/tmp
 task-1/chroma_db/
+task-6/chroma_db/
+task-6/state/
+task-6/data/simulated_raw/

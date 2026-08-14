@@ -13,6 +13,34 @@ is a safety incident, not just a bad user experience. The data is also
 genuinely, safely public, FDA drug labeling contains no patient information
 at all.
 
+## PII/PHI and HIPAA, honestly
+
+RxGround's data source, openFDA drug labeling, contains no patient
+information by definition, it is regulatory text about a drug, not a
+person. That means HIPAA does not apply to the data this system indexes,
+the same way it wouldn't apply to a paper drug reference book.
+
+The real gap is the **input**, not the index: nothing here stops a
+pharmacist from typing patient-identifying details into a free-text
+question (a name, a date of birth), which would then reach whichever LLM
+provider answered it and, unredacted, land in this repo's logged eval
+outputs. task-4's [scope guardrail](./task-4/scope_guardrail.py) blocks
+diagnostic/prescriptive phrasing, it does not detect or redact PII, that
+is a deliberately separate concern this project does not build, since
+RxGround was scoped as reference lookup over public label data, not a
+system meant to receive real patient data in the first place.
+
+If RxGround (or a system like it) needed to actually handle real PHI, the
+real requirements would be: PII/PHI detection and redaction before a
+query reaches any LLM provider or gets logged, a signed BAA with every
+LLM vendor used (Groq's and Gemini's free tiers do not offer one, ruling
+them out as-is), encryption at rest and in transit for logs, access
+controls, and audit logging. None of that is built here. This is the
+same reason CareThread, the roadmap's capstone, uses **Synthea**-generated
+fully synthetic patient records instead of real data, the same
+architectural story, RAG plus PHI-shaped data plus guardrails, with zero
+real PHI and therefore zero HIPAA obligation.
+
 ## Architecture
 
 ```mermaid
@@ -58,10 +86,21 @@ flowchart LR
         rerank --> final[("top-k chunks")]
     end
 
+    subgraph Task6["Task 6: ingestion, separated from serving"]
+        revision[("revised label\nJSON")] --> hashcheck{"content hash\nchanged?"}
+        hashcheck -- "no" --> skip6[("skipped,\nno re-embed")]
+        hashcheck -- "yes" --> incr["rechunk + re-embed\nthis label only"]
+        incr --> chromaC[("task-6's own\nChroma copy")]
+    end
+
     chromaA -. "reused unchanged" .-> gate
     chromaA -. "reused unchanged" .-> gate2
     chromaA -. "reused unchanged" .-> dense
 ```
+
+Task 6's ingestion writes to its own, separate Chroma copy
+(`task-6/chroma_db/`), never to task-1's collection every serving task
+(2, 3, 4) reads from, see task-6's own README for why.
 
 ## Tasks
 
@@ -71,6 +110,7 @@ flowchart LR
 | 2 | [`task-2/`](./task-2) | Baseline RAG on top of task-1's index: retrieve, augment, generate with a citation-enforcing prompt and a measured 0.75 similarity gate that refuses questions not covered by the indexed labels before any LLM call. 10/10 real questions were gated correctly, 6/8 in-index answers carried a traceable citation (4/8 in the exact requested format, 2 more in the label's own cross-reference style), and 2/2 out-of-index questions were correctly refused, run live against Ollama and confirmed provider-agnostic against Gemini |
 | 3 | [`task-3/`](./task-3) | Citation-enforced generation: structured JSON output, one claim per statement, each claim's `(set_id, section, chunk_id)` citation validated first by Pydantic then cross-checked against the chunk_ids actually retrieved for that question, a claim whose citation does not survive both checks is rejected rather than trusted. A lexical-overlap groundedness score is logged per claim. Run live against Ollama on 18 questions across 3 categories: 10/10 refusal correctness, 0.556 mean citation validity on answered questions, 0.749 mean groundedness, 0/18 parse failures. The real citation-invalid cases were content-correct answers with a fabricated chunk_id (see task-3's README), which is exactly the failure mode the chunk_id cross-check exists to catch. The deliberate failure exercise shows the citation-enforced pipeline correctly refusing an aspirin dosing question (aspirin is not indexed) while the same retrieved context, unenforced, produces a confident-sounding answer built from an unrelated drug's label |
 | 4 | [`task-4/`](./task-4) | Advanced retrieval: hybrid search (BM25 plus task-1's dense vectors) combined with reciprocal rank fusion, cross-encoder reranking, brand/generic query expansion, drug-class metadata filtering (a curated table, openFDA's own class field is populated for only 4 of 15 labels), and a scope guardrail refusing diagnostic/prescriptive questions before retrieval even runs, the missing piece of the roadmap's anti-hallucination task. Run live on 18 real queries: hybrid + rerank improved top-1 accuracy over naive dense-only search (0.778 vs 0.722) but top-3 accuracy dropped slightly (0.833 vs 0.889), a real, traced regression where the reranker promoted a wrong-drug chunk with strong topical overlap over the correct drug's own chunk, documented honestly rather than tuned away |
+| 6 | [`task-6/`](./task-6) | Production RAG architecture: ingestion separated from serving, orchestrated as a Prefect flow, incremental re-indexing keyed on a per-label content hash so only a changed label's chunks are ever rechunked, re-embedded, and replaced. Real, live simulation: seeded from all 15 real labels, confirmed idempotent on re-run (all 15 hashes unchanged, all skipped), then a simulated ZITUVIMET boxed-warning revision correctly triggered re-ingestion of exactly that one label, confirmed retrievable in the new text, with an unrelated label's chunk_ids byte-identical before and after. Caught and fixed two real bugs along the way (documented in task-6's README): Prefect copies flow parameters across a subflow boundary, so mutating a shared manifest dict silently didn't propagate, and the verification step itself only checked the first of 3 chunks a long section split into, missing the revision on the first run despite ingestion having worked correctly |
 
 ## Tech stack
 

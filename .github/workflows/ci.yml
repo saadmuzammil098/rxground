@@ -81,6 +81,45 @@ jobs:
         # guardrail's pattern matching are under test here.
         run: python -m pytest tests -v
 
+  test-task-5:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: task-5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install -r ../requirements.txt
+      - name: Prompt-building and golden-set structure tests
+        # Fast, offline: generate_answers.py imports task-4's retrieval
+        # chain (chromadb, rank_bm25 at module load time), so the full
+        # requirements.txt is needed to import it at all, but these tests
+        # exercise only the prompt builder and the golden set's own
+        # structure, no live Chroma index, embedding model, Ollama
+        # server, or ragas judge call is made.
+        run: python -m pytest tests -v
+
+  test-task-6:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: task-6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install pytest
+      - name: Ingestion manifest tests
+        # Fast, offline: no Prefect, Chroma, embedding model, or live
+        # openFDA data needed, manifest.py has no dependencies beyond the
+        # standard library, only pytest itself needs installing.
+        run: python -m pytest tests -v
+
   readme-diagrams:
     runs-on: ubuntu-latest
     steps:
