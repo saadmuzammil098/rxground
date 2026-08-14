@@ -17,7 +17,7 @@ at all.
 
 ```mermaid
 flowchart LR
-    subgraph Day14["Day 14, task-1: section-aware chunking vs naive"]
+    subgraph Task1["Task 1: section-aware chunking vs naive"]
         fda[("openFDA API\n15 real drug labels")] --> raw[("data/raw/*.json")]
         raw --> aware["section-aware chunks"]
         raw --> naive["naive fixed-size chunks"]
@@ -28,14 +28,14 @@ flowchart LR
         eval --> results[("top1: 0.667 vs 0.250\ntop3: 0.833 vs 0.500")]
     end
 
-    subgraph Day15["Day 15, task-2: baseline RAG"]
+    subgraph Task2["Task 2: baseline RAG"]
         question[("pharmacist question")] --> gate{"similarity gate\n>= 0.75?"}
         gate -- "no" --> refuse[("not covered,\nno LLM call")]
         gate -- "yes" --> llm["generate()\nOllama / Gemini / Groq"]
         llm --> cited[("cited answer,\n(Brand, section)")]
     end
 
-    subgraph Day16["Day 16, task-3: citation-enforced generation"]
+    subgraph Task3["Task 3: citation-enforced generation"]
         q3[("pharmacist question")] --> gate2{"similarity gate\n>= 0.75?"}
         gate2 -- "no" --> refuse2[("refused,\nno LLM call")]
         gate2 -- "yes" --> llm2["generate()\nstructured JSON prompt"]
@@ -46,17 +46,31 @@ flowchart LR
         xcheck -- "yes" --> ground["groundedness.py\nlexical overlap score"]
     end
 
+    subgraph Task4["Task 4: advanced retrieval"]
+        q4[("pharmacist question")] --> scope{"scope guardrail:\ndiagnostic/\nprescriptive?"}
+        scope -- "yes" --> refuse4[("refused,\nreference-lookup only")]
+        scope -- "no" --> expand["query_expansion.py\nbrand <-> generic"]
+        expand --> dense["dense search\n(task-1's Chroma)"]
+        expand --> bm25["BM25 search\n(same chunks)"]
+        dense --> rrf["reciprocal rank\nfusion"]
+        bm25 --> rrf
+        rrf --> rerank["cross-encoder\nrerank"]
+        rerank --> final[("top-k chunks")]
+    end
+
     chromaA -. "reused unchanged" .-> gate
     chromaA -. "reused unchanged" .-> gate2
+    chromaA -. "reused unchanged" .-> dense
 ```
 
 ## Tasks
 
-| Day | Folder | What it is |
+| Task | Folder | What it is |
 |---|---|---|
-| 14 | [`task-1/`](./task-1) | Indexes 15 real FDA drug labels (pulled live from the openFDA API) two ways, section-aware chunking versus naive fixed-size chunking, embeds both with BAAI/bge-base-en-v1.5 into separate Chroma collections, and measures the real retrieval accuracy gap on 12 pharmacist-style questions. Section-aware wins 0.667 versus 0.250 top-1 accuracy on the same questions |
-| 15 | [`task-2/`](./task-2) | Baseline RAG on top of task-1's index: retrieve, augment, generate with a citation-enforcing prompt and a measured 0.75 similarity gate that refuses questions not covered by the indexed labels before any LLM call. 10/10 real questions were gated correctly, 6/8 in-index answers carried a traceable citation (4/8 in the exact requested format, 2 more in the label's own cross-reference style), and 2/2 out-of-index questions were correctly refused, run live against Ollama and confirmed provider-agnostic against Gemini |
-| 16 | [`task-3/`](./task-3) | Citation-enforced generation: structured JSON output, one claim per statement, each claim's `(set_id, section, chunk_id)` citation validated first by Pydantic then cross-checked against the chunk_ids actually retrieved for that question, a claim whose citation does not survive both checks is rejected rather than trusted. A lexical-overlap groundedness score is logged per claim. Run live against Ollama on 18 questions across 3 categories: 10/10 refusal correctness, 0.556 mean citation validity on answered questions, 0.749 mean groundedness, 0/18 parse failures. The real citation-invalid cases were content-correct answers with a fabricated chunk_id (see task-3's README), which is exactly the failure mode the chunk_id cross-check exists to catch. The deliberate failure exercise shows the citation-enforced pipeline correctly refusing an aspirin dosing question (aspirin is not indexed) while the same retrieved context, unenforced, produces a confident-sounding answer built from an unrelated drug's label |
+| 1 | [`task-1/`](./task-1) | Indexes 15 real FDA drug labels (pulled live from the openFDA API) two ways, section-aware chunking versus naive fixed-size chunking, embeds both with BAAI/bge-base-en-v1.5 into separate Chroma collections, and measures the real retrieval accuracy gap on 12 pharmacist-style questions. Section-aware wins 0.667 versus 0.250 top-1 accuracy on the same questions |
+| 2 | [`task-2/`](./task-2) | Baseline RAG on top of task-1's index: retrieve, augment, generate with a citation-enforcing prompt and a measured 0.75 similarity gate that refuses questions not covered by the indexed labels before any LLM call. 10/10 real questions were gated correctly, 6/8 in-index answers carried a traceable citation (4/8 in the exact requested format, 2 more in the label's own cross-reference style), and 2/2 out-of-index questions were correctly refused, run live against Ollama and confirmed provider-agnostic against Gemini |
+| 3 | [`task-3/`](./task-3) | Citation-enforced generation: structured JSON output, one claim per statement, each claim's `(set_id, section, chunk_id)` citation validated first by Pydantic then cross-checked against the chunk_ids actually retrieved for that question, a claim whose citation does not survive both checks is rejected rather than trusted. A lexical-overlap groundedness score is logged per claim. Run live against Ollama on 18 questions across 3 categories: 10/10 refusal correctness, 0.556 mean citation validity on answered questions, 0.749 mean groundedness, 0/18 parse failures. The real citation-invalid cases were content-correct answers with a fabricated chunk_id (see task-3's README), which is exactly the failure mode the chunk_id cross-check exists to catch. The deliberate failure exercise shows the citation-enforced pipeline correctly refusing an aspirin dosing question (aspirin is not indexed) while the same retrieved context, unenforced, produces a confident-sounding answer built from an unrelated drug's label |
+| 4 | [`task-4/`](./task-4) | Advanced retrieval: hybrid search (BM25 plus task-1's dense vectors) combined with reciprocal rank fusion, cross-encoder reranking, brand/generic query expansion, drug-class metadata filtering (a curated table, openFDA's own class field is populated for only 4 of 15 labels), and a scope guardrail refusing diagnostic/prescriptive questions before retrieval even runs, the missing piece of the roadmap's anti-hallucination task. Run live on 18 real queries: hybrid + rerank improved top-1 accuracy over naive dense-only search (0.778 vs 0.722) but top-3 accuracy dropped slightly (0.833 vs 0.889), a real, traced regression where the reranker promoted a wrong-drug chunk with strong topical overlap over the correct drug's own chunk, documented honestly rather than tuned away |
 
 ## Tech stack
 
@@ -93,7 +107,7 @@ of label sections.
 
 Picked over the roadmap's other listed option, Qdrant, because it needs no
 server or account for a dataset this size, a local folder is enough. Keeps
-the day's work focused on the chunking comparison itself, not on running
+this task focused on the chunking comparison itself, not on running
 infrastructure.
 </details>
 
@@ -174,6 +188,41 @@ text saying something its cited chunk does not contain, is a fact a
 second LLM call could just as easily rubber-stamp as the first one
 hallucinated. A deterministic word-overlap score cannot be talked into
 agreeing with a fabricated claim.
+</details>
+
+<details>
+<summary><strong>rank_bm25</strong>, task-4, the BM25 leg of hybrid search</summary>
+
+Small, free, pure-Python BM25 implementation over the exact same
+section-aware chunks task-1 already built, no separate search server
+needed for a dataset this size.
+</details>
+
+<details>
+<summary><strong>Reciprocal rank fusion</strong>, task-4, combines BM25 and dense search rankings</summary>
+
+Chosen over a weighted score blend because BM25 scores and cosine
+similarity live on incomparable scales, RRF only needs each ranked
+list's position, not its raw score, to combine them.
+</details>
+
+<details>
+<summary><strong>cross-encoder/ms-marco-MiniLM-L-6-v2</strong>, task-4, reranks the fused candidate pool</summary>
+
+The specific reranker the roadmap names for this task, free and
+well-established. Also the model on which task-4's real regression was
+observed, it can promote a wrong-drug chunk with strong topical overlap
+over the right drug's own chunk, since it is not given the drug name as
+a separate signal, only raw chunk text, see task-4's README.
+</details>
+
+<details>
+<summary><strong>A curated drug-class table</strong>, task-4, metadata filtering by drug class</summary>
+
+openFDA's own <code>pharm_class_epc</code> field, the obvious source for
+this, is populated for only 4 of the 15 labels indexed here, too sparse
+to filter on directly, so this is a small hand-built table instead,
+standard pharmacology classification.
 </details>
 
 ## Setup

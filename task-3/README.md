@@ -1,5 +1,20 @@
 # Task 3, citation-enforced generation with Pydantic-validated claims
 
+## Architecture
+
+```mermaid
+flowchart LR
+    question[("pharmacist question")] --> gate{"similarity gate\n>= 0.75?"}
+    gate -- "no" --> refuse1[("refused,\nno LLM call")]
+    gate -- "yes" --> llm["generate()\nstructured JSON prompt"]
+    llm --> parse{"valid JSON +\nPydantic schema?"}
+    parse -- "no" --> refuse2[("fail closed,\nrefused")]
+    parse -- "yes" --> xcheck{"chunk_id in\nretrieved set?"}
+    xcheck -- "no" --> invalid[("claim rejected,\ncitation invalid")]
+    xcheck -- "yes" --> ground["groundedness.py\nlexical overlap score"]
+    ground --> answer[("cited, scored answer")]
+```
+
 Builds the generation layer on top of task-1's index and task-2's baseline
 RAG. task-2 already retrieved, generated, and asked for citations in free
 text, its own README documents that a regex over free text catches maybe
