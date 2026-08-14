@@ -1,0 +1,5 @@
+outs:
+- md5: 5ca52f7ec3da3fe225967cb671bcb923
+  size: 4890
+  hash: md5
+  path: golden_set.json

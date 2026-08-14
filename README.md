@@ -86,6 +86,12 @@ flowchart LR
         rerank --> final[("top-k chunks")]
     end
 
+    subgraph Task5["Task 5: RAGAS evaluation"]
+        golden[("golden_set.json\n12 questions")] --> t4retrieve["task-4's retrieve\n+ plain-text generate"]
+        t4retrieve --> judge["ragas.evaluate()\njudge: qwen2.5:7b"]
+        judge --> metrics[("faithfulness 0.877\nrelevancy 0.758\nprecision 0.688\nrecall 0.917")]
+    end
+
     subgraph Task6["Task 6: ingestion, separated from serving"]
         revision[("revised label\nJSON")] --> hashcheck{"content hash\nchanged?"}
         hashcheck -- "no" --> skip6[("skipped,\nno re-embed")]
@@ -96,6 +102,7 @@ flowchart LR
     chromaA -. "reused unchanged" .-> gate
     chromaA -. "reused unchanged" .-> gate2
     chromaA -. "reused unchanged" .-> dense
+    final -. "reused unchanged" .-> t4retrieve
 ```
 
 Task 6's ingestion writes to its own, separate Chroma copy
@@ -110,6 +117,7 @@ Task 6's ingestion writes to its own, separate Chroma copy
 | 2 | [`task-2/`](./task-2) | Baseline RAG on top of task-1's index: retrieve, augment, generate with a citation-enforcing prompt and a measured 0.75 similarity gate that refuses questions not covered by the indexed labels before any LLM call. 10/10 real questions were gated correctly, 6/8 in-index answers carried a traceable citation (4/8 in the exact requested format, 2 more in the label's own cross-reference style), and 2/2 out-of-index questions were correctly refused, run live against Ollama and confirmed provider-agnostic against Gemini |
 | 3 | [`task-3/`](./task-3) | Citation-enforced generation: structured JSON output, one claim per statement, each claim's `(set_id, section, chunk_id)` citation validated first by Pydantic then cross-checked against the chunk_ids actually retrieved for that question, a claim whose citation does not survive both checks is rejected rather than trusted. A lexical-overlap groundedness score is logged per claim. Run live against Ollama on 18 questions across 3 categories: 10/10 refusal correctness, 0.556 mean citation validity on answered questions, 0.749 mean groundedness, 0/18 parse failures. The real citation-invalid cases were content-correct answers with a fabricated chunk_id (see task-3's README), which is exactly the failure mode the chunk_id cross-check exists to catch. The deliberate failure exercise shows the citation-enforced pipeline correctly refusing an aspirin dosing question (aspirin is not indexed) while the same retrieved context, unenforced, produces a confident-sounding answer built from an unrelated drug's label |
 | 4 | [`task-4/`](./task-4) | Advanced retrieval: hybrid search (BM25 plus task-1's dense vectors) combined with reciprocal rank fusion, cross-encoder reranking, brand/generic query expansion, drug-class metadata filtering (a curated table, openFDA's own class field is populated for only 4 of 15 labels), and a scope guardrail refusing diagnostic/prescriptive questions before retrieval even runs, the missing piece of the roadmap's anti-hallucination task. Run live on 18 real queries: hybrid + rerank improved top-1 accuracy over naive dense-only search (0.778 vs 0.722) but top-3 accuracy dropped slightly (0.833 vs 0.889), a real, traced regression where the reranker promoted a wrong-drug chunk with strong topical overlap over the correct drug's own chunk, documented honestly rather than tuned away |
+| 5 | [`task-5/`](./task-5) | RAG evaluation with real RAGAS metrics (faithfulness, answer relevancy, context precision, context recall) over 12 golden questions, judged by Ollama (qwen2.5:7b) and scored with the same BAAI/bge-base-en-v1.5 embeddings task-1 indexes with, no OpenAI key anywhere. Real means: faithfulness 0.877, answer relevancy 0.758, context precision 0.688, context recall 0.917. The honest finding: three questions scored 0.0 on some metric despite their answers being correct on inspection, exposing that a small local judge model produces real judge noise, not just low scores, RAGAS is only as reliable as what judges it. One low score was genuine retrieval signal, not judge noise, the same COZAAR reranker regression task-4 documents, caught independently here by context precision/recall dropping to 0 |
 | 6 | [`task-6/`](./task-6) | Production RAG architecture: ingestion separated from serving, orchestrated as a Prefect flow, incremental re-indexing keyed on a per-label content hash so only a changed label's chunks are ever rechunked, re-embedded, and replaced. Real, live simulation: seeded from all 15 real labels, confirmed idempotent on re-run (all 15 hashes unchanged, all skipped), then a simulated ZITUVIMET boxed-warning revision correctly triggered re-ingestion of exactly that one label, confirmed retrievable in the new text, with an unrelated label's chunk_ids byte-identical before and after. Caught and fixed two real bugs along the way (documented in task-6's README): Prefect copies flow parameters across a subflow boundary, so mutating a shared manifest dict silently didn't propagate, and the verification step itself only checked the first of 3 chunks a long section split into, missing the revision on the first run despite ingestion having worked correctly |
 
 ## Tech stack
@@ -263,6 +271,29 @@ openFDA's own <code>pharm_class_epc</code> field, the obvious source for
 this, is populated for only 4 of the 15 labels indexed here, too sparse
 to filter on directly, so this is a small hand-built table instead,
 standard pharmacology classification.
+</details>
+
+<details>
+<summary><strong>RAGAS</strong>, task-5, faithfulness, answer relevancy, context precision, and context recall</summary>
+
+The specific eval library the roadmap names for this task. Wired through
+its LangChain wrappers to a local Ollama judge (qwen2.5:7b) and the
+same BAAI/bge-base-en-v1.5 embeddings task-1's index uses, no OpenAI key
+needed, consistent with every other provider-agnostic piece of this
+repo. Also the tool that surfaced this project's most interesting honest
+finding, a small local judge model produces real judge noise, three
+correct answers scored 0.0 on some metric purely from judge unreliability,
+see task-5's README.
+</details>
+
+<details>
+<summary><strong>Prefect</strong>, task-6, orchestrates ingestion as its own flow, separate from serving</summary>
+
+Picked over the roadmap's other listed option, Dagster, for a
+decorator-based flow/task API that keeps the incremental-ingestion logic
+readable, and because this repo needs simple retry-on-failure semantics
+per label, not Dagster's heavier asset-based data-lineage model, which
+would be more than this dataset's size actually needs.
 </details>
 
 ## Setup
