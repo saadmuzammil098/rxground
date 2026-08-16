@@ -120,6 +120,24 @@ jobs:
         # standard library, only pytest itself needs installing.
         run: python -m pytest tests -v
 
+  test-task-7:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: task-7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install -r ../requirements.txt
+      - name: Query service tests
+        # Fast, offline: answer_question is monkeypatched, no live Chroma
+        # index, embedding model, Ollama server, or API keys needed. Only
+        # the FastAPI request/response wiring is under test here.
+        run: python -m pytest tests -v
+
   readme-diagrams:
     runs-on: ubuntu-latest
     steps:
